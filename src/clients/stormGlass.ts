@@ -1,6 +1,8 @@
 import { StormGlassForecastResponse, StormGlassPoint } from "@src/interfaces/stormglassforecast";
 import { ForecastPointNormalized } from "@src/interfaces/forecast";
 import { AxiosStatic } from "axios";
+import { ClientRequestError } from "@src/util/errors/client-request-error";
+import { StormGlassResponseError } from "@src/util/errors/stormglass-response-error";
 
 export class StormGlass {
 
@@ -12,15 +14,22 @@ export class StormGlass {
     }
 
     public async fetchPoints(lat: number, lng: number): Promise<ForecastPointNormalized[]> {
-        const response = await this.req.get<StormGlassForecastResponse>(
-            `https://api.stormglass.io/v2/weather/point?lat=${lat}&lng=${lng}&params=${this.stormGlassAPIParams}&source=${this.stormGlassAPISource}`,
-            {
-                headers: {
-                    Authorization: 'fake-token'
+        try {
+            const response = await this.req.get<StormGlassForecastResponse>(
+                `https://api.stormglass.io/v2/weather/point?lat=${lat}&lng=${lng}&params=${this.stormGlassAPIParams}&source=${this.stormGlassAPISource}`,
+                {
+                    headers: {
+                        Authorization: 'fake-token'
+                    }
                 }
+            );
+            return this.normalizeResponse(response.data);
+        } catch (err: any) {
+            if(err.response && err.response.status){
+                throw new StormGlassResponseError(`Error: ${JSON.stringify(err.response.data)} Code: ${err.response.status}`)
             }
-        );
-        return this.normalizeResponse(response.data);
+            throw new ClientRequestError(err.message);
+        }
     }
 
     private normalizeResponse(points: StormGlassForecastResponse): ForecastPointNormalized[] {
@@ -48,5 +57,4 @@ export class StormGlass {
             point.windSpeed?.[this.stormGlassAPISource]
         );
     }
-
 }
