@@ -1,3 +1,5 @@
+import { BeachForecast } from "./beach";
+
 export interface ForecastPointNormalized {
     time: string;
     waveDirection: number;
@@ -7,4 +9,9 @@ export interface ForecastPointNormalized {
     swellPeriod: number;
     windDirection: number;
     windSpeed: number;
+}
+
+export interface TimeForecast {
+    time: string,
+    forecast: BeachForecast[]
 }

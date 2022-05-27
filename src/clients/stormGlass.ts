@@ -3,29 +3,41 @@ import { ForecastPointNormalized } from "@src/interfaces/forecast";
 import { AxiosStatic } from "axios";
 import { ClientRequestError } from "@src/util/errors/client-request-error";
 import { StormGlassResponseError } from "@src/util/errors/stormglass-response-error";
+import config, { IConfig } from 'config';
+import * as HTTPUtil from '@src/util/request';
+
+const stormGlassResourceConfig: IConfig = config.get('App.resources.StormGlass');
 
 export class StormGlass {
 
     readonly stormGlassAPIParams = 'swellDirection,swellHeight,swellPeriod,waveDirection,waveHeight,windDirection,windSpeed';
     readonly stormGlassAPISource = 'noaa';
 
-    constructor(protected req: AxiosStatic) {
+    constructor(protected req = new HTTPUtil.Request()) {
 
     }
 
     public async fetchPoints(lat: number, lng: number): Promise<ForecastPointNormalized[]> {
         try {
             const response = await this.req.get<StormGlassForecastResponse>(
-                `https://api.stormglass.io/v2/weather/point?lat=${lat}&lng=${lng}&params=${this.stormGlassAPIParams}&source=${this.stormGlassAPISource}`,
+                `${stormGlassResourceConfig.get('apiUrl')}
+                /weather/point?lat=
+                ${lat}
+                &lng=
+                ${lng}
+                &params=
+                ${this.stormGlassAPIParams}
+                &source=
+                ${this.stormGlassAPISource}`,
                 {
                     headers: {
-                        Authorization: 'fake-token'
+                        Authorization: `${stormGlassResourceConfig.get('apiToken')}`
                     }
                 }
             );
             return this.normalizeResponse(response.data);
         } catch (err: any) {
-            if(err.response && err.response.status){
+            if(HTTPUtil.Request.isRequestError(err)){
                 throw new StormGlassResponseError(`Error: ${JSON.stringify(err.response.data)} Code: ${err.response.status}`)
             }
             throw new ClientRequestError(err.message);
